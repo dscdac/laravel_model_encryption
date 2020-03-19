@@ -71,7 +71,6 @@ trait HasEncryptedAttributes
     private function setEncryptedHashedBIAttributes($key, $value){
 
         if (array_key_exists($key, $this->encrypted)) {
-
             $this->checkTypes($key, $value);
             $this->setBlindIndex($key, $value);
             $value = $this->setEncrypted($value);
@@ -199,7 +198,7 @@ trait HasEncryptedAttributes
      * @return bool|mixed
      * @throws TypeError
      */
-    private function checkTypes($key, $value)
+    private function checkTypes($key, &$value)
     {
         if (array_key_exists($key, $this->encrypted) && !is_null($value)) {
 
@@ -213,8 +212,15 @@ trait HasEncryptedAttributes
                 case 'float':
                     $this->checkType($key, $value, ['float', 'integer', 'double']);
                     break;
+                case 'array':
+                case 'object':
+                case 'json':
+                    $value = json_encode($value);
+                    break;
                 default:
-                    if(!in_array($type, $this->primitiveTypes)) throw new TypeError("Encryption error, $type not a supported type of 'integer', 'boolean', 'float', 'string', 'date'");
+                    if(!in_array($type, $this->primitiveTypes)) {
+                        throw new TypeError("Encryption error, $type not a supported type of 'integer', 'boolean', 'float', 'string', 'date'");
+                    }
                     $this->checkType($key, $value, [$type]);
             }
 
@@ -231,14 +237,7 @@ trait HasEncryptedAttributes
      */
     private function checkType($key, $value, array $types){
 
-        $hasMatchedType = false;
-
-        foreach($types as $type){
-            if (gettype($value) == $type){
-                $hasMatchedType = true;
-                break;
-            }
-        }
+        $hasMatchedType = in_array( gettype($value), $types );
 
         if (!$hasMatchedType){
             throw new TypeError("Encryption error, $key not of correct type or null. Type is: " . gettype($value));
@@ -345,7 +344,7 @@ trait HasEncryptedAttributes
      */
     public function encriptedColumns()
     {
-      return (!empty($this->encrypted))? $this->encrypted : [];
+        return (!empty($this->encrypted))? $this->encrypted : [];
     }
 
 }
